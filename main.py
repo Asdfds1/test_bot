@@ -48,9 +48,7 @@ def callback_for_admin_(call):
             send_bd(call.message.chat.id)
 
 def send_bd(call_id):
-    with open("./sqlite3.db", "rb") as file:
-        f = file.read()
-    bot.send_document(call_id, f)
+    bot.send_document(call_id, open(r'./sqlite3.db', 'rb'))
 
 def send_remind(call_id):
     bot.send_message(call_id,
@@ -81,7 +79,7 @@ def start(message):
         answer = f'Здравствуйте, готовы ли вы начать'
         if session.check_user_id(message.chat.id) == False:
             session.add_new_user(message.chat.id, User_Stage.start_stage)
-        bot.send_message(message.chat.id, answer, reply_markup=markup);
+        bot.send_message(message.chat.id, answer, reply_markup=markup)
 
 @bot.message_handler(func= lambda message: message)
 
@@ -204,7 +202,7 @@ async def main():
     Session = sessionmaker(bind=engine)
     global session
     session = Interaction_DB(Session())
-    # send_reserve()
+    send_reserve()
     while True:
         try:
             await bot.polling(none_stop=True, interval=0)
