@@ -35,7 +35,7 @@ def admin(message):
 
 @bot.callback_query_handler(func= lambda call: call.data in ['exit', 'get_data'])
 def callback_for_admin_(call):
-    if session.check_user_stage(call.message.chat.id) == User_Stage.admin_mod:
+    if session.check_user_stage(call.message.chat.id, User_Stage.admin_mod):
         if call.data == 'exit':
             bot.send_message(call.message.chat.id,
                              f'Вы в обычном режиме, напишите /start'
@@ -48,8 +48,9 @@ def callback_for_admin_(call):
             send_bd(call.message.chat.id)
 
 def send_bd(call_id):
-    file = open('./sqlite3.db')
-    bot.send_document(call_id, file)
+    with open("./sqlite3.db", "rb") as file:
+        f = file.read()
+    bot.send_document(call_id, f)
 
 def send_remind(call_id):
     bot.send_message(call_id,
@@ -58,9 +59,9 @@ def send_remind(call_id):
 @bot.message_handler(commands=['start'])
 def start(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True);
-    if session.check_user_stage(message.chat.id) != User_Stage.start_stage:
-        stage = session.return_user_by_id(message.chat.id).get_stage()
-        if stage == User_Stage.answer_question:
+    stage = session.return_user_by_id(message.chat.id).get_stage()
+    if stage != User_Stage.start_stage:
+        if stage == User_Stage.answer_question or stage == User_Stage.wait_salary:
             keyboard = Keyboard()
             keyboard.add_button('да', 'continue')
             keyboard.add_button('нет', 'break')
@@ -68,11 +69,19 @@ def start(message):
                              f'У вас есть непройденный тест, продолжите отвечать на впопросы?',
                              reply_markup=keyboard.get_keyboard()
                              )
-
-    answer = f'Здравствуйте, готовы ли вы начать'
-    if session.check_user_id(message.chat.id) == False:
-        session.add_new_user(message.chat.id, User_Stage.start_stage)
-    bot.send_message(message.chat.id, answer, reply_markup=markup);
+        elif stage == User_Stage.finally_stage:
+            keyboard = Keyboard()
+            keyboard.add_button('да', 'New_start')
+            keyboard.add_button('нет', 'Finish')
+            bot.send_message(message.chat.id,
+                             f'Вы уже прошли тест. Желаете пройти заного?',
+                             reply_markup=keyboard.get_keyboard()
+                             )
+    elif stage == User_Stage.start_stage:
+        answer = f'Здравствуйте, готовы ли вы начать'
+        if session.check_user_id(message.chat.id) == False:
+            session.add_new_user(message.chat.id, User_Stage.start_stage)
+        bot.send_message(message.chat.id, answer, reply_markup=markup);
 
 @bot.message_handler(func= lambda message: message)
 
@@ -184,7 +193,7 @@ def handle_answer(call):
 #         return '', 403
 
 def send_reserve():
-    global next_call
+    next_call = time.time()
     next_call = next_call + 86400
     threading.Timer(next_call - time.time(), send_reserve).start()
     send_bd(523223092)
@@ -195,7 +204,7 @@ async def main():
     Session = sessionmaker(bind=engine)
     global session
     session = Interaction_DB(Session())
-    send_reserve()
+    # send_reserve()
     while True:
         try:
             await bot.polling(none_stop=True, interval=0)
