@@ -1,25 +1,28 @@
-import io
-import requests
 import telebot
 import asyncio
-import pandas as pd
+import json
 from Stages import User_Stage
 from User import User, Interaction_DB, connect_to_DB
 from config import config
-from PIL import Image
 from Class_keyboard import Keyboard
 from telebot import types
-from flask import Flask, request
 from sqlalchemy.orm import sessionmaker
-import datetime, threading, time
+import threading, time
+
 bot = telebot.TeleBot(config.token)
 
 
-users = pd.DataFrame(columns=['user_id', 'user_stage'])
+
 dict_of_questions = {
     0: 'У вас гражданство РФ',
     1: 'ВЫ живете в Москве'
 }
+
+# def handler(event, context):
+#     body = json.loads(event['body'])
+#     update = telebot.types.Update.de_json(body)
+#     bot.process_new_updates([update])
+
 
 @bot.message_handler(commands=['admin'])
 def admin(message):
@@ -128,7 +131,7 @@ def get_start_answer(message):
 
 @bot.callback_query_handler(func= lambda call: call.data in ['continue', 'break', 'New_start', 'Finish'])
 def callback_from_start_stage(call):
-    if session.check_user_stage(call.message.chat.id, User_Stage.answer_question):
+    if session.check_user_stage(call.message.chat.id, User_Stage.answer_question) or session.check_user_stage(call.message.chat.id, User_Stage.wait_salary):
         if call.data == 'continue':
             session.replace_user_stage(call.message.chat.id, User_Stage.answer_question)
             # try:

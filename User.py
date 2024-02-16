@@ -1,4 +1,3 @@
-import pandas as pd
 from sqlalchemy import ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String
